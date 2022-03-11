@@ -1,0 +1,70 @@
+apiVersion: v1
+data:
+  CreateDB.sql: |-
+    Create TABLE text (
+       id  serial  PRIMARY KEY,
+       text  VARCHAR(100) UNIQUE NOT NULL
+    );
+kind: ConfigMap
+metadata:
+  namespace: demo
+  name: pg-init-script
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: demo
+  name: postgres
+  labels:
+    app: database
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      namespace: demo
+      labels:
+        app: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres
+        ports: 
+        - containerPort: 5432
+        volumeMounts:
+        - name: sqlscript
+          mountPath: /docker-entrypoint-initdb.d
+        env:
+          - name: POSTGRES_USER
+            value: "postgres"
+          - name: POSTGRES_PASSWORD
+            value: "postgres"
+      volumes:
+        - name: sqlscript
+          configMap:
+            name: pg-init-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: demo
+  name: pg-service
+  labels:
+    app: database
+spec:
+  type: ClusterIP
+  selector:
+    app: database
+  ports:
+  - port: 5432
+
+
+
+
+
+
+
+
